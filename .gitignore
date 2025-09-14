@@ -1,0 +1,5 @@
+# Ignore all PGN files
+*.pgn
+
+# Ignore Python cache directories
+__pycache__/
