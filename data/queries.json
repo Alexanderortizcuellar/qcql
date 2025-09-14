@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Nh6Mate",
+        "query": "cql()\nbtm\nB[a1,b2,c3,d4,e5]\nNh6->k mate"
+    },
+    {
+        "name": "PromotionQStalemate",
+        "query": "cql()\npath\n[Pp]--=Q stalemate"
+    },
+    {
+        "name": "greekGiftAccepted",
+        "query": "cql()\npath\nB[x]ph7 check\nk[x]Bh7\nN--g5 check"
+    },
+    {
+        "name": "smotheredmateWhite",
+        "query": "cql()\nbtm\nnot k->[_A] mate"
+    },
+    {
+        "name": "smotheredmateBlack",
+        "query": "cql()\nwtm\nnot K->[_a] mate"
+    }
+]

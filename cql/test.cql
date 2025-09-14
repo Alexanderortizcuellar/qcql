@@ -1,0 +1,1 @@
+cql(input test.cql)

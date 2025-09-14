@@ -1,0 +1,204 @@
+[
+  {
+    "option": "-a",
+    "example": "cql -a greekgift.cql",
+    "description": "convert unicode characters in greekgift.cql to ASCII"
+  },
+  {
+    "option": "-alwayscomment",
+    "example": "cql -alwayscomment foo.cql",
+    "description": "disable smart comments"
+  },
+  {
+    "option": "-assign",
+    "example": "cql -assign Foo x.cqo",
+    "description": "variable Foo is assigned the string \"x.cqo\". If the second argument is a number its numeric value is used"
+  },
+  {
+    "option": "-black",
+    "example": "cql -black Kasparov",
+    "description": "Black player must match next command line argument"
+  },
+  {
+    "option": "-cql",
+    "example": "cql -cql \"Ra3 Nb2 stalemate\"",
+    "description": "positions must match the specified CQL filters"
+  },
+  {
+    "option": "-event",
+    "example": "cql -event Championship",
+    "description": "Limit games searched to the specified event"
+  },
+  {
+    "option": "-fen",
+    "example": "cql -fen 8/8/8/8/8/8/8/KNk5",
+    "description": "only match positions with given FEN board"
+  },
+  {
+    "option": "-flip",
+    "example": "cql -flip puremate-simple.cql",
+    "description": "flip the body of the CQL file"
+  },
+  {
+    "option": "-flipcolor",
+    "example": "cql -flipcolor staircase-sort.cql",
+    "description": "allow color interchange in body of CQL file"
+  },
+  {
+    "option": "-gamenumber / -g",
+    "example": [
+      "cql -gamenumber 1 100 foo.cql",
+      "cql -gamenumber 43597 foo.cql"
+    ],
+    "description": "only consider games with game numbers in the range given by the next one or two numeric command line arguments"
+  },
+  {
+    "option": "-gui",
+    "example": "cql -gui -i /a/x/b.pgn -o /a/x/c.pgn",
+    "description": "output information for GUI developers"
+  },
+  {
+    "option": "-help",
+    "example": "cql -help",
+    "description": "print a help message"
+  },
+  {
+    "option": "-html",
+    "example": "cql -html x.cql",
+    "description": "create x-cql.html"
+  },
+  {
+    "option": "-input / -i",
+    "example": "cql -input h.pgn foo.cql",
+    "description": "read games from the PGN file specified in the next command line argument. The .cql extension may be omitted. Overrides the input parameter"
+  },
+  {
+    "option": "-lineincrement",
+    "example": "cql -lineincrement 500",
+    "description": "print message every specified number of games"
+  },
+  {
+    "option": "-mainline",
+    "example": "cql -mainline foo.cql",
+    "description": "Search only in the mainline"
+  },
+  {
+    "option": "-matchcount",
+    "example": "cql -matchcount 0 foo.cql",
+    "description": "only output games for which the number of matched positions lies within the range following -matchcount"
+  },
+  {
+    "option": "-matchstring",
+    "example": "cql -matchstring \"pure mate\" puremate-simple.cql",
+    "description": "change the comment inserted when a position is matched (default is \"CQL\")"
+  },
+  {
+    "option": "-noheader",
+    "example": "cql -noheader staircase-sort.cql",
+    "description": "omit the CQL-generated header before every game"
+  },
+  {
+    "option": "-noremovecomment",
+    "example": "cql -noremovetag c.cql",
+    "description": "ignore removecomment filters"
+  },
+  {
+    "option": "-nosettag",
+    "example": "cql -nosettag ex.cql",
+    "description": "ignore settag filters"
+  },
+  {
+    "option": "-output / -o",
+    "example": "cql -output out.pgn foo.cql",
+    "description": "write the output file to the PGN file specified in the next command line argument. Overrides the output parameter"
+  },
+  {
+    "option": "-player",
+    "example": "cql -player Reti foo.cql",
+    "description": "Only consider games by player named in next command line argument"
+  },
+  {
+    "option": "-reversecolor",
+    "example": "cql -reversecolor puremate-simple.cql",
+    "description": "reverse the colors in the body of the CQL file"
+  },
+  {
+    "option": "-result",
+    "example": [
+      "cql -result 1-0",
+      "cql -result 0-1",
+      "cql -result 1/2-1/2"
+    ],
+    "description": "result must match specified argument"
+  },
+  {
+    "option": "-shift",
+    "example": "cql -shift foo.cql",
+    "description": "shift the body of the file"
+  },
+  {
+    "option": "-similarposition",
+    "example": "cql -similarposition submission.cql",
+    "description": "check each position in submission.pgn to determine whether it matches current position"
+  },
+  {
+    "option": "-singlethreaded / -s",
+    "example": "cql -s foo.cql",
+    "description": "run only one thread"
+  },
+  {
+    "option": "-showmatches",
+    "example": "cql -showmatches foo.cql",
+    "description": "print the game number of each match as it occurs"
+  },
+  {
+    "option": "-silent",
+    "example": "cql -silent foo.cql",
+    "description": "Suppress printing of automatically generated comments"
+  },
+  {
+    "option": "-site",
+    "example": "cql -site Paris",
+    "description": "site should match specified argument"
+  },
+  {
+    "option": "-threads",
+    "example": "cql -threads 3 foo.cql",
+    "description": "Run with the specified number of threading"
+  },
+  {
+    "option": "-u",
+    "example": "cql -u turton.cql",
+    "description": "convert turton.cql to use Unicode where possible"
+  },
+  {
+    "option": "-variations",
+    "example": "cql -variations foo.cql",
+    "description": "Search in the mainline and in variations"
+  },
+  {
+    "option": "-version",
+    "example": "cql -version",
+    "description": "print version number of this CQL executable"
+  },
+  {
+    "option": "-virtualmainline",
+    "example": "cql -virtualmainline turton.cql",
+    "description": "Only consider virtualmainline positions"
+  },
+  {
+    "option": "-white",
+    "example": "cql -white Kasparov",
+    "description": "White player must match next command line argument"
+  },
+  {
+    "option": "-vi",
+    "example": "cql -vi staircase-sort.cql",
+    "description": "read from hhdbvi.pgn; equivalent to cql -input hhdbvi.pgn ..."
+  },
+  {
+    "option": "-year",
+    "example": "cql -year 2000 2010 foo.cql",
+    "description": "only consider games whose year is in the range given by the following one or two numeric command line arguments"
+  }
+]
