@@ -34,7 +34,7 @@ A PyQt5 desktop application for running **Chess Query Language (CQL)** searches 
 ### Requirements
 - Python 3.9+
 - PyQt5
-- `python-chess`
+- chess
 - CQL executable (installed separately, [see docs](https://www.gadycosteff.com/cql/))
 
 ### Installation
