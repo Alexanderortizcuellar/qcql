@@ -40,6 +40,6 @@ A PyQt5 desktop application for running **Chess Query Language (CQL)** searches 
 ### Installation
 
 ```bash
-git clone https://github.com/yourusername/qcql.git
+git clone https://github.com/Alexanderortizcuellar/qcql.git
 cd qcql
 pip install -r requirements.txt
