@@ -43,6 +43,7 @@ class CQLProcess(QProcess):
         with open("temp.cql", "w") as f:
             f.write(cqlquery)
         cqlfile = "temp.cql"
+        self.setProgram("cql")
         self.setArguments(["-gui", "--guipgnstdout", "-input", pgnfile, cqlfile])
         self.start()
 
@@ -54,10 +55,13 @@ class CQLProcess(QProcess):
 
     def read_error(self):
         errors = self.readAllStandardError()
+        print(errors.data().decode())
         self.errorsReceivedFromStderr.emit(errors.data().decode())
 
     def on_finished(self, exitCode, exitStatus):
         output = self.readAllStandardOutput().data().decode()
+        error = self.readAllStandardError().data().decode()
+        print(output, error)
         self.finishedEXecution.emit(exitCode, exitStatus, output)
 
     def read_data(self):

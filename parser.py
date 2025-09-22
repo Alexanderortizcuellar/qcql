@@ -115,8 +115,8 @@ class PgnTableWidget(QtWidgets.QWidget):
 
         self.info_label = QtWidgets.QLabel(self)
         layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(6, 6, 6, 6)
-        layout.setSpacing(6)
+        layout.setContentsMargins(1, 5, 1, 1)
+        #layout.setSpacing(6)
         layout.addWidget(self.filter_edit)
         layout.addWidget(self.table, 1)
         layout.addWidget(self.info_label)

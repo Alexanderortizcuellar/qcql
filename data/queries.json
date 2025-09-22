@@ -18,5 +18,29 @@
     {
         "name": "smotheredmateBlack",
         "query": "cql()\nwtm\nnot K->[_a] mate"
+    },
+    {
+        "name": "QsacrificeMate",
+        "query": "cql()\npath\nQ[x]a check\nk[x]Q\nA-- mate\n"
+    },
+    {
+        "name": "RookxNightcheckFork",
+        "query": "cql()\npath\nR[x]n check\nk[x]R\nN-- check\nk--\nN[x]r"
+    },
+    {
+        "name": "alapinwhitewin",
+        "query": "cql()\nfen \"rnbqkbnr/pp1ppppp/8/2p5/4P3/2P5/PP1P1PPP/RNBQKBNR\"\nresult 1-0"
+    },
+    {
+        "name": "alekhineGambit",
+        "query": "cql()\nplayer white \"Alexander2magnus\"\nresult 1-0\npath\nP--e4\nn--f6\nP--e5\nn--d5\n[Aa]--+\nPa5->nb6"
+    },
+    {
+        "name": "italianWin",
+        "query": "cql()\nplayer white \"Alexander2magnus\"\nresult 1-0\nfen \"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3\""
+    },
+    {
+        "name": "againstDani",
+        "query": "cql()\nplayer white \"Alexander2magnus\"\nplayer black \"danielgg12\"\nresult 1-0\nfen \"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3\""
     }
 ]

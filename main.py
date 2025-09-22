@@ -21,7 +21,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QFile, pyqtSignal
 from PyQt5.QtGui import QIcon
 import qtawesome as qta
-from editor import SqlEditorWidget, DARK_QSS, LIGHT_QSS
+from editor import SqlEditorWidget
+from styles import DARK_QSS, LIGHT_QSS
 from parser import PgnTableWidget
 from browser import PGNBrowser
 from process import CQLProcess, CounterProcess
@@ -123,22 +124,26 @@ class ChessboardDialog(QDialog):
     def __init__(self, game_info: str, parent=None, html_style=False):
         super().__init__(parent)
 
-        # ✅ Enable title bar and close button
+        # Enable title bar and close button
         self.setWindowFlags(Qt.Window)
 
-        # ✅ Allow resizing
+        # Allow resizing
         self.setSizeGripEnabled(True)
         self.setMinimumSize(520, 520)  # Optional: prevent too small size
         self.resize(1260, 620)  # Start bigger for better UX
 
         self.setWindowTitle("Chessboard Viewer")
 
-        # ✅ Layout
+        # Layout
         layout = QVBoxLayout(self)
 
-        # ✅ Add your PGN browser widget
+        # Add your PGN browser widget
         self.pgn_browser = PGNBrowser(game_info, html_style=html_style)
         layout.addWidget(self.pgn_browser)
+
+    def closeEvent(self, a0):
+        self.pgn_browser.engine.quit()
+        a0.accept()
 
 
 # ---------- Main Window ----------
@@ -197,6 +202,7 @@ class ChessCQLApp(QMainWindow):
         self.log_panel.insertHtml(f"<span style='color:red'>{error}</span><br>")
 
     def show_progress(self):
+        print(self.game_count)
         dlg = QProgressDialog(
             "Processing games...",
             "Cancel",
@@ -207,6 +213,7 @@ class ChessCQLApp(QMainWindow):
         )
         dlg.setWindowTitle("Processing...")
         self.cql.progressUpdated.connect(dlg.setValue)
+        dlg.canceled.connect(self.cql.terminate)
         self.cql.finishedEXecution.connect(dlg.close)
 
         dlg.setWindowModality(Qt.ApplicationModal)
@@ -274,7 +281,7 @@ class ChessCQLApp(QMainWindow):
         # Toolbar actions
         self.act_run = QAction(fa_icon("fa5s.play", "fa.play"), "Run Query", self)
         self.act_run.setShortcut("F5")
-        self.act_run.triggered.connect(self.run_query_placeholder)
+        self.act_run.triggered.connect(self.run_query)
 
         self.act_clear = QAction(
             fa_icon("fa5s.trash", "fa.trash"), "Clear Results", self
@@ -438,7 +445,7 @@ class ChessCQLApp(QMainWindow):
     def show_chessboard_dialog(self, game: dict):
         ChessboardDialog(game, self, html_style=self.dark_mode).exec_()
 
-    def run_query_placeholder(self):
+    def run_query(self):
         if not self.cql_editor.editor.toPlainText() or not self.pgnfilename:
             QMessageBox.warning(
                 self,
@@ -456,6 +463,7 @@ class ChessCQLApp(QMainWindow):
         if filename:
             self.pgnfilename = filename
             self.status_bar.showMessage(f"Opening {filename}... Please wait...")
+            print(f"Opening {filename}... Please wait...")
             self.act_run.setEnabled(False)
             counter = CounterProcess(self, self.pgnfilename)
             counter.countFinished.connect(self.on_count_finished)

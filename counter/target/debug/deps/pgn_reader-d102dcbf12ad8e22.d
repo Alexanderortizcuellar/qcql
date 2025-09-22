@@ -1,0 +1,11 @@
+C:\Users\ASUS\programming\qt_programs\chess\cql\counter\target\debug\deps\pgn_reader-d102dcbf12ad8e22.d: C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\lib.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\buffer.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\comment.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\nag.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\reader.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\tag.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\visitor.rs
+
+C:\Users\ASUS\programming\qt_programs\chess\cql\counter\target\debug\deps\libpgn_reader-d102dcbf12ad8e22.rmeta: C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\lib.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\buffer.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\comment.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\nag.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\reader.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\tag.rs C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\visitor.rs
+
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\lib.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\buffer.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\comment.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\nag.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\reader.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\tag.rs:
+C:\Users\ASUS\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\pgn-reader-0.28.0\src\visitor.rs:

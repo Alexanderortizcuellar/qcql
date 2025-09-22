@@ -1,3 +1,5 @@
 cql()
 path
-[Pp]--=Q stalemate
+Q[x]a check
+k[x]Q
+A-- mate

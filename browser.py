@@ -11,16 +11,17 @@ from PyQt5.QtCore import QUrl, QSize, Qt
 from PyQt5.QtGui import QFont
 import re
 import sys
-
-# import chess.pgn
+from io import StringIO
+import chess.pgn
 from chesboard import ChessBoard
 from movemanager import MoveManager
 import qtawesome as qta
 
 from pgn_browser import PGNBrowser as PGN_Browser
 from viewer import PGNHeaderWidget
-# from io import StringIO
-
+from analysis_widget import AnalysisWidget
+from bar import EvalBar
+from engine import ChessEngine
 
 text = """[Event "?"]
 [Site "?"]
@@ -75,14 +76,15 @@ class PGNBrowser(QWidget):
         self.set_html_style(html_style)
         chess_bar_layout = QHBoxLayout()
         chess_bar_layout.setContentsMargins(0, 0, 0, 0)
-        # self.bar = EvalBar()
+        self.bar = EvalBar()
         layout.addLayout(chess_bar_layout)
         self.chessboard = ChessBoard(self, size=650)
+        chess_bar_layout.addWidget(self.bar)
         chess_bar_layout.addWidget(self.chessboard)
         pgn_area_layout = QVBoxLayout()
         layout.addLayout(pgn_area_layout)
-        # self.analysis_widget = AnalysisWidget(self)
-        # self.analysis_widget.setFixedHeight(100)
+        self.analysis_widget = AnalysisWidget(self)
+        self.analysis_widget.setFixedHeight(100)
         self.header_widget = PGNHeaderWidget(game_info)
         self.browser = PGN_Browser(self, self.move_manager)
 
@@ -132,14 +134,15 @@ class PGNBrowser(QWidget):
         copy_pgn_btn.setCursor(Qt.PointingHandCursor)
         actions_layout.addWidget(save_pgn_btn)
         actions_layout.addWidget(copy_pgn_btn)
-        # pgn_area_layout.addWidget(self.analysis_widget)
+        pgn_area_layout.addWidget(self.analysis_widget)
         pgn_area_layout.addWidget(self.header_widget)
         pgn_area_layout.addWidget(self.browser)
         pgn_area_layout.addLayout(self.navigation_layout)
         pgn_area_layout.addLayout(actions_layout)
 
-        # self.engine = ChessEngine("stockfish", self)
+        self.engine = ChessEngine("stockfish", self)
         self.display_pgn()
+        self.analysis_widget.check_analysis.toggled.connect(self.toggle_analysis)
         self.chessboard.moveMade.connect(self.handle_move)
         # self.chessboard.GameOver.connect(self.on_game_over)
         self.forward_button.clicked.connect(self.forward)
@@ -153,20 +156,17 @@ class PGNBrowser(QWidget):
         )
         self.move_manager.pgnChanged.connect(lambda _: self.display_pgn())
         self.browser.anchorClicked.connect(self.on_anchor_clicked)
-        # self.chessboard.fenChanged.connect(self.send_position)
-        # self.engine.cpScoreFound.connect(self.get_score)
-        # self.engine.depthChanged.connect(
-        #     lambda depth: self.analysis_widget.set_depth(f"depth={depth}")
-        # )
-        # self.engine.lineFound.connect(self.on_lines_found)
-        # self.engine.mateFound.connect(
-        #     lambda matein: self.analysis_widget.set_score(f"M{matein}")
-        # )
-        # self.engine.start()
+        self.chessboard.fenChanged.connect(self.send_position)
+        self.engine.cpScoreFound.connect(self.get_score)
+        self.engine.depthChanged.connect(
+            lambda depth: self.analysis_widget.set_depth(f"depth={depth}")
+        )
+        self.engine.lineFound.connect(self.on_lines_found)
+        self.engine.mateFound.connect(self.get_mate)
 
     def flip_board(self):
         self.chessboard.flip()
-        # self.bar.setFlipped(self.bar._flipped)
+        self.bar.setFlipped(not self.bar._flipped)
 
     def on_anchor_clicked(self, url: QUrl):
         match = re.match(r"move\((\d+)\)", url.toString())
@@ -231,10 +231,11 @@ class PGNBrowser(QWidget):
 
     """ def on_game_over(self):
         self.engine.send_command("stop")
+     """
 
     def send_position(self):
         self.engine.send_command("stop")
-        self.engine.send_position(self.chessboard.fen(), "depth", options={"depth": 60}) """
+        self.engine.send_position(self.chessboard.fen(), "depth", options={"depth": 60})
 
     def show_variations(self):
         variations = self.move_manager.get_current_node_variations()
@@ -244,7 +245,7 @@ class PGNBrowser(QWidget):
         score = max(-10, min(10, score))
         return int((score + 10) / 20 * 1000)
 
-    """ def on_lines_found(self, lines: list[str]):
+    def on_lines_found(self, lines: list[str]):
         board = chess.Board(self.chessboard.fen())
         if len(lines) >= 1:
             move1_uci = lines[0]
@@ -256,7 +257,7 @@ class PGNBrowser(QWidget):
         move1_uci = lines[0]
         move1 = chess.Move.from_uci(move1_uci)
         game = chess.pgn.read_game(StringIO(pgn))
-        # self.analysis_widget.set_line_text(str(game.mainline_moves())) """
+        self.analysis_widget.set_line_text(str(game.mainline_moves()))
 
     def get_score(self, score: int):
         if self.chessboard.turn:
@@ -269,9 +270,31 @@ class PGNBrowser(QWidget):
                 score = -score
             else:
                 score = abs(score)
-        # self.bar.setEngineScore({"type": "cp", "value": score})
-        # self.bar.setToolTip(str(score / 100))
-        # self.analysis_widget.set_score(str(score / 100))
+        self.bar.setEngineScore({"type": "cp", "value": score})
+        self.bar.setToolTip(str(score / 100))
+        self.analysis_widget.set_score(str(score / 100))
+    
+    def get_mate(self, matein: int):
+        if matein > 0:
+            if self.chessboard.turn:
+                self.bar.setEngineScore({"type": "mate", "value": matein})
+            else:
+                self.bar.setEngineScore({"type": "mate", "value": -matein})
+            self.bar.setToolTip(f"M{matein}")
+            self.analysis_widget.set_score(f"M{matein}")
+
+    def toggle_analysis(self, toggle: bool):
+        if toggle:
+            if self.engine.is_running():
+                self.bar.show()
+                self.send_position()
+                return
+            self.engine.start()
+            self.bar.show()
+            self.send_position()
+        else:
+            self.engine.send_command("stop")
+            self.bar.hide()
 
     def save_pgn(self):
         file, ok = QFileDialog.getSaveFileName(
