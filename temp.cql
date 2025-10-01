@@ -1,5 +1,2 @@
 cql()
-path
-Q[x]a check
-k[x]Q
-A-- mate
+flipcolor pin from B through r to q

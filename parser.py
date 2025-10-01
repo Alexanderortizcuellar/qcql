@@ -136,6 +136,18 @@ class PgnTableWidget(QtWidgets.QWidget):
         self.filter_edit.textChanged.connect(self._on_filter_text_changed)
         self.table.doubleClicked.connect(self._on_double_clicked)
 
+    def load_pgn_threaded(self, pgn_text: str):
+        self.worker = PGNWorker(self, pgn_text)
+        self.worker.finished.connect(self.on_worker_finished)
+        #self.worker.gameParsed.connect(print)
+        self.worker.start()
+
+    
+    def on_worker_finished(self, rows: List[Dict[str, str]]):
+        self.model.set_rows(rows)
+        self._hide_moves_column()
+        self.table.resizeColumnsToContents()
+
     # --- Public methods ---
     def load_pgn_text(self, pgn_text: str):
         """Parse raw PGN text and populate the table."""
@@ -151,7 +163,7 @@ class PgnTableWidget(QtWidgets.QWidget):
         self.model.set_rows([])
 
     def set_info_text(self, text: str):
-        self.info_label.setText(text)
+        self.info_label.setText(str(text))
 
     # --- Internal slots / helpers ---
     def _hide_moves_column(self):
@@ -246,6 +258,7 @@ class PgnTableWidget(QtWidgets.QWidget):
 
 class PGNWorker(QtCore.QThread):
     finished = QtCore.pyqtSignal(list)
+    gameParsed = QtCore.pyqtSignal(int)
 
     def __init__(self, parent=None, pgn_text: str = ""):
         self.pgn_text = pgn_text
@@ -255,7 +268,7 @@ class PGNWorker(QtCore.QThread):
         rows = self._parse_pgn_text_to_rows(self.pgn_text)
         self.finished.emit(rows)
 
-    def _parse_pgn_text_to_rows(pgn_text: str) -> List[Dict[str, str]]:
+    def _parse_pgn_text_to_rows(self,pgn_text: str) -> List[Dict[str, str]]:
         """
         Convert PGN text into a list of rows (dicts). Each row includes:
           - Event, Site, Date, Round, White, Black, Result, ECO, Moves
@@ -267,6 +280,7 @@ class PGNWorker(QtCore.QThread):
         # Keep reading until no more games
         while True:
             game = chess_pgn.read_game(stream)
+            self.gameParsed.emit(len(rows))
             if game is None:
                 break
 
@@ -290,7 +304,6 @@ class PGNWorker(QtCore.QThread):
                 "_pgn": str(game).strip(),
             }
             rows.append(row)
-
         return rows
 
 

@@ -73,15 +73,14 @@ class EvalBar(QWidget):
         """
         stype = score.get("type")
         sval = int(score.get("value", 0))
-
         if stype == "cp":
             # Clamp and map with a smooth logistic so motion is pleasing
             cp = max(-2000, min(2000, sval))
             white_share = 1.0 / (1.0 + math.exp(-cp / self._cp_scale))
             self._score_text = f"{cp/100:+.2f}"  # show from white's POV, "+0.75" etc.
         elif stype == "mate":
-            print(score)
             # "All inclined" to the mating color, as requested
+            print("score:", score, sval)
             if sval > 0:
                 white_share = 1.0
                 self._score_text = f"+M{abs(sval)}"
@@ -96,6 +95,7 @@ class EvalBar(QWidget):
             self._score_text = "+0.00"
 
         self._animateTo(white_share)
+        self.update()
 
     # --- animation helper -------------------------------------------------------
     def _animateTo(self, v: float):

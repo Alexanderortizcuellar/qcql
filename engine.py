@@ -42,9 +42,10 @@ class ChessEngine(QtCore.QProcess):
             self.cpScoreFound.emit(int(cp_match.captured(1)))
         if "mate" in data:
             mate_pattern = QtCore.QRegularExpression(r"score mate (-?\d+)")
-            mate_match = mate_pattern.match(data)
-            if mate_match.hasMatch():
-                self.mateFound.emit(int(mate_match.captured(1)))
+            for line in data.splitlines():
+                mate_match = mate_pattern.match(line)
+                if mate_match.hasMatch():
+                    self.mateFound.emit(int(mate_match.captured(1)))
             for line in data.splitlines():
                 match_pv = pv_pattern.match(line)
                 parts = match_pv.captured(0).split("pv")

@@ -42,5 +42,13 @@
     {
         "name": "againstDani",
         "query": "cql()\nplayer white \"Alexander2magnus\"\nplayer black \"danielgg12\"\nresult 1-0\nfen \"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3\""
+    },
+    {
+        "name": "b4tTrap",
+        "query": "cql()\nplayer white \"Alexander2Magnus\"\nresult 1-0\nBc4\nbc5\npath\nP--a4\na--\nP--b4"
+    },
+    {
+        "name": "knightForkQK",
+        "query": "cql()\nflipcolor piece Knight in N {\n [kq] <- Knight > 1\n}"
     }
 ]

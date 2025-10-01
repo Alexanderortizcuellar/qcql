@@ -129,7 +129,7 @@ class ChessboardDialog(QDialog):
 
         # Allow resizing
         self.setSizeGripEnabled(True)
-        self.setMinimumSize(520, 520)  # Optional: prevent too small size
+        self.setMinimumSize(590, 750)  # Optional: prevent too small size
         self.resize(1260, 620)  # Start bigger for better UX
 
         self.setWindowTitle("Chessboard Viewer")
@@ -182,15 +182,16 @@ class ChessCQLApp(QMainWindow):
 
     def on_info_received(self, cql_info: dict):
         if isinstance(cql_info, dict):
-            if cql_info.get("numbermatches"):
+            numbermatches = cql_info.get("numbermatches")
+            if numbermatches:
                 self.results_table.set_info_text(
-                    f"{cql_info['numbermatches']} matches of {self.game_count} games"
+                    f"{numbermatches} matches of {self.game_count} games"
                 )
                 self.status_bar.showMessage(
-                    f"{cql_info['numbermatches']} matches of {self.game_count} games"
+                    f"{numbermatches} matches of {self.game_count} games"
                 )
                 self.log_panel.append(
-                    f"<span style='color:blue'>Matches: {cql_info['numbermatches']}</span><br>"
+                    f"<span style='color:blue'>Matches: {numbermatches}</span><br>"
                 )
             else:
                 for k, v in cql_info.items():
@@ -202,7 +203,6 @@ class ChessCQLApp(QMainWindow):
         self.log_panel.insertHtml(f"<span style='color:red'>{error}</span><br>")
 
     def show_progress(self):
-        print(self.game_count)
         dlg = QProgressDialog(
             "Processing games...",
             "Cancel",
@@ -494,7 +494,7 @@ class ChessCQLApp(QMainWindow):
 
     def on_games(self, games: str):
         self.results_table.clear()
-        self.results_table.load_pgn_text(games)
+        self.results_table.load_pgn_threaded(games)
 
     def closeEvent(self, a0):
         ok = QMessageBox.question(

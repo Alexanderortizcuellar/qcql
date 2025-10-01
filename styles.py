@@ -27,10 +27,10 @@ QPlainTextEdit {
     font-size: 24px;
 }
 
-QtextEdit {
+QTextEdit {
     background-color: #FFFFFF;
     color: #1F2937;
-    border: 1px solid #D1D5DB;
+    border: 1px solid transparent;
     border-radius: 8px;
     selection-background-color: #CCE4FF;
     selection-color: #111827;
@@ -307,7 +307,7 @@ QTextEdit {
     selection-background-color: #264F78;
     selection-color: #FFFFFF;
     font-family: Consolas, "Fira Code", "DejaVu Sans Mono", monospace;
-    font-size: 18px;
+    font-size: 16px;
 }
 
 /* ===== Inputs ===== */

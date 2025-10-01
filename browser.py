@@ -273,15 +273,22 @@ class PGNBrowser(QWidget):
         self.bar.setEngineScore({"type": "cp", "value": score})
         self.bar.setToolTip(str(score / 100))
         self.analysis_widget.set_score(str(score / 100))
-    
+
     def get_mate(self, matein: int):
+        if matein == 0:
+            return
         if matein > 0:
             if self.chessboard.turn:
                 self.bar.setEngineScore({"type": "mate", "value": matein})
             else:
                 self.bar.setEngineScore({"type": "mate", "value": -matein})
-            self.bar.setToolTip(f"M{matein}")
-            self.analysis_widget.set_score(f"M{matein}")
+        else:
+            if self.chessboard.turn:
+                self.bar.setEngineScore({"type": "mate", "value": matein})
+            else:
+                self.bar.setEngineScore({"type": "mate", "value": -matein})
+        self.analysis_widget.set_score(f"M{matein}")
+        self.bar.setToolTip(f"M{matein}")
 
     def toggle_analysis(self, toggle: bool):
         if toggle:
