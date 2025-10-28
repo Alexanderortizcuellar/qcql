@@ -50,5 +50,9 @@
     {
         "name": "knightForkQK",
         "query": "cql()\nflipcolor piece Knight in N {\n [kq] <- Knight > 1\n}"
+    },
+    {
+        "name": "karoQxb3",
+        "query": "cql()\nfen \"rnbqkbnr/pp2pppp/8/3p4/3P4/3B4/PPP2PPP/RNBQK1NR\"\nfind all {\nq[x]b3 and a[x]b3\n}"
     }
 ]

@@ -35,7 +35,9 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
         self.side = chess.WHITE
         self.svg_xy = 10  # top left x, y-pos of chessboard
         self.board_size = size  # size of chessboard
-        self.margin = 0.0 * self.board_size  # should be 0.04 * self.board_size to work when drawing board with coords
+        self.margin = (
+            0.0 * self.board_size
+        )  # should be 0.04 * self.board_size to work when drawing board with coords
         self.square_size = (self.board_size - 2 * self.margin) / 8.0
         wnd_wh = self.board_size + 2 * self.svg_xy
 
@@ -177,10 +179,13 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
         return ""
 
     def animate_move(self, move: chess.Move, emit=True):
+        previous_fen = self.fen()
         # 1) render just the moving piece as an SVG
 
         # ensure piece is above
         piece = self.piece_at(move.from_square)
+        self.set_piece_at(move.from_square, None)
+        self.draw_board()
         svg_piece = chess.svg.piece(piece, size=int(self.square_size))
         self.animated_piece.load(QtCore.QByteArray(svg_piece.encode("utf-8")))
         self.animated_piece.raise_()
@@ -195,15 +200,19 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
 
         # 3) QPropertyAnimation on widget position
         anim = QtCore.QPropertyAnimation(self.animated_piece, b"pos", self)
-        anim.setDuration(150)
+        anim.setDuration(160)
         anim.setStartValue(QtCore.QPoint(x0, y0))
         anim.setEndValue(QtCore.QPoint(x1, y1))
-        anim.finished.connect(lambda: self._finish_animated_move(move, piece, emit))
+        anim.finished.connect(
+            lambda: self._finish_animated_move(move, previous_fen, emit)
+        )
         anim.start()
         self._current_anim = anim  # keep alive
 
     @QtCore.pyqtSlot(chess.Move, chess.Piece)
-    def _finish_animated_move(self, move: chess.Move, piece: chess.Piece, emit=True):
+    def _finish_animated_move(self, move: chess.Move, previous_fen, emit=True):
+        self.set_fen(previous_fen)
+        self.draw_board()
         if not self.is_game_over():
             self.animated_piece.hide()
             self.push(move)
@@ -336,7 +345,7 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
             arrows=arrows,
             coordinates=False,
             borders=False,
-            colors={"square light":"#eed8b3" , "square dark": "#b68564"}
+            colors={"square light": "#eed8b3", "square dark": "#b68564"},
         )
         # legal = [chess.square_name(move.to_square) for move in legal_moves]
         svg = self.add_legal_moves(svg, legal_moves)
@@ -393,7 +402,6 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
         """
         # Generate SVG data
         svg_data = chess.svg.piece(piece, size=size)
-
         # Convert SVG string to byte array
         byte_array = QtCore.QByteArray(svg_data.encode("utf-8"))
 

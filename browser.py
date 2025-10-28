@@ -13,7 +13,7 @@ import re
 import sys
 from io import StringIO
 import chess.pgn
-from chesboard import ChessBoard
+from chessboard import ChessBoard
 from movemanager import MoveManager
 import qtawesome as qta
 
