@@ -8,7 +8,30 @@ from PyQt5 import QtCore, QtGui, QtSvg, QtWidgets
 from PyQt5.QtCore import Qt
 
 
-## TODO override cursor when starting drag
+class PieceCache:
+    _cache = {}
+
+    @classmethod
+    def piece_to_pixmap(cls, piece: chess.Piece, size: int) -> QtGui.QPixmap:
+        """Convert a chess piece to a cached QPixmap."""
+        key = (piece.symbol(), size)
+        if key in cls._cache:
+            return cls._cache[key]
+
+        # Generate SVG only once per piece type/size
+        svg_data = chess.svg.piece(piece, size=size)
+        renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg_data.encode("utf-8")))
+
+        pixmap = QtGui.QPixmap(size, size)
+        pixmap.fill(QtCore.Qt.GlobalColor.transparent)
+        painter = QtGui.QPainter(pixmap)
+        renderer.render(painter)
+        painter.end()
+
+        cls._cache[key] = pixmap
+        return pixmap
+
+
 ## support responsiveness
 class ChessBoard(QtWidgets.QWidget, chess.Board):
     """
@@ -50,8 +73,12 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
         self.last_click = None
         self.last_move = None
         self.animated_piece = QtSvg.QSvgWidget(self)
+        self.animated_piece.setAutoFillBackground(False)
         self.animated_piece.setGeometry(
             0, 0, int(self.square_size), int(self.square_size)
+        )
+        self.animated_piece.setStyleSheet(
+            "background-color: transparent; border: none;"
         )
         self.animated_piece.hide()
         self._current_anim = None
@@ -90,7 +117,7 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
                     drag = QtGui.QDrag(self)
                     mime_data = QtCore.QMimeData()
                     mime_data.setText(
-                        f"{self.get_clicked(a0.pos())},{self.piece_at(current_square).symbol()}"
+                        f"{self.get_clicked(a0.pos())},{self.piece_at(current_square).symbol()},{self.fen()}"
                     )
                     drag.setMimeData(mime_data)
                     current_piece = self.piece_at(current_square)
@@ -98,15 +125,12 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
                         current_piece, int(self.square_size)
                     )
                     drag.setPixmap(pixmap_icon)
-                    drag.setHotSpot(
-                        QtCore.QPoint(
-                            pixmap_icon.width() // 2, pixmap_icon.height() // 2
-                        )
-                    )
-                    drag.setDragCursor(
-                        self.create_transparent_cursor(), Qt.DropAction.MoveAction
-                    )
-                    drag.exec(QtCore.Qt.DropAction.MoveAction)
+                    drag.setHotSpot(pixmap_icon.rect().center())
+                    # drag.setDragCursor(self.create_transparent_cursor(), Qt.MoveAction)
+                    legal_moves = self.get_legal_moves(current_square)
+                    self.set_piece_at(current_square, None)
+                    self.draw_board(legal_moves=legal_moves)
+                    drag.exec(Qt.MoveAction)
         except Exception:
             a0.ignore()
 
@@ -115,7 +139,11 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
 
     def dropEvent(self, a0):
         current = self.get_clicked(a0.pos())
+        # piece = a0.mimeData().text().split(",")[1]
+        fen = a0.mimeData().text().split(",")[-1]
         try:
+            self.set_fen(fen)
+            self.draw_board()
             uci = self.last_click + current
             self.apply_move(uci + self.get_promotion(uci), animate=False)
             a0.accept()
@@ -136,26 +164,13 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
     def contextMenuEvent(self, a0):
         super().contextMenuEvent(a0)
         menu = QtWidgets.QMenu(self)
-        menu.addAction("Undo move")
-        menu.addAction("Reset board")
-        menu.addAction("Clear Square")
         menu.addAction("Flip board")
         menu.addSeparator()
 
         action = menu.exec_(a0.globalPos())
         if action is None:
             return
-        if action.text() == "Undo move":
-            self.undo_move()
-        elif action.text() == "Reset board":
-            self.restart_board()
-        elif action.text() == "Clear Square":
-            coord = self.get_clicked(a0)
-            self.set_piece_at(chess.parse_square(coord), None)
-            self.draw_board()
-            self.ReadyForNextMove.emit(self.fen())
-            self.fenChanged.emit(self.fen())
-        elif action.text() == "Flip board":
+        if action.text() == "Flip board":
             self.flip()
 
     def paintEvent(self, a0):
@@ -180,9 +195,6 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
 
     def animate_move(self, move: chess.Move, emit=True):
         previous_fen = self.fen()
-        # 1) render just the moving piece as an SVG
-
-        # ensure piece is above
         piece = self.piece_at(move.from_square)
         self.set_piece_at(move.from_square, None)
         self.draw_board()
@@ -284,23 +296,16 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
 
         return ET.tostring(root, encoding="unicode")
 
-    def get_legal_moves(self, src) -> list[chess.Move]:
-        square_src = chess.parse_square(src)
+    def get_legal_moves(self, src: str | chess.Square) -> list[chess.Move]:
+        if isinstance(src, str):
+            src = chess.parse_square(src)
+        if isinstance(src, chess.Square):
+            square_src = src
         if square_src not in [move.from_square for move in self.legal_moves]:
-            return {}
+            return []
         targets = [move for move in self.legal_moves if move.from_square == square_src]
 
         return targets
-
-    def undo_move(self):
-        try:
-            self.last_move = None
-            self.pop()
-            self.draw_board()
-            self.ReadyForNextMove.emit(self.fen())
-            self.fenChanged.emit(self.fen())
-        except IndexError:
-            pass
 
     def restart_board(self):
         self.last_move = None
@@ -393,29 +398,7 @@ class ChessBoard(QtWidgets.QWidget, chess.Board):
         return x, y - 5
 
     def piece_to_pixmap(self, piece: chess.Piece, size: int) -> QtGui.QPixmap:
-        """
-        Converts a chess piece to a QPixmap using chess.svg.piece().
-
-        :param piece: a python-chess Piece object
-        :param size: size in pixels for the image
-        :return: QPixmap
-        """
-        # Generate SVG data
-        svg_data = chess.svg.piece(piece, size=size)
-        # Convert SVG string to byte array
-        byte_array = QtCore.QByteArray(svg_data.encode("utf-8"))
-
-        # Load into QSvgRenderer
-        renderer = QtSvg.QSvgRenderer(byte_array)
-        # Create a QPixmap and render into it
-        pixmap = QtGui.QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)  # Important for transparent background
-
-        painter = QtGui.QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
-
-        return pixmap
+        return PieceCache.piece_to_pixmap(piece, size)
 
 
 class PromotionDialog(QtWidgets.QDialog):
@@ -431,7 +414,7 @@ class PromotionDialog(QtWidgets.QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowTitle("Choose Promotion Piece")
 
-        # Beautiful rounded dialog with shadow and gradient
+        # rounded dialog with shadow and gradient
         self.setStyleSheet(
             """
             QDialog {
@@ -516,15 +499,7 @@ class PromotionDialog(QtWidgets.QDialog):
         """
         Converts a chess piece to a QPixmap using chess.svg.piece().
         """
-        svg_data = chess.svg.piece(piece, size=size)
-        byte_array = QtCore.QByteArray(svg_data.encode("utf-8"))
-        renderer = QtSvg.QSvgRenderer(byte_array)
-        pixmap = QtGui.QPixmap(size, size)
-        pixmap.fill(Qt.GlobalColor.transparent)
-        painter = QtGui.QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
-        return pixmap
+        return PieceCache.piece_to_pixmap(piece, size)
 
 
 if __name__ == "__main__":
