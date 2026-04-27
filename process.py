@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, QProcess
+from PyQt5.QtCore import pyqtSignal, QProcess, QRegularExpression
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 
@@ -23,9 +23,11 @@ class CQLProcess(QProcess):
     errorReceived = pyqtSignal(str)
     errorsReceivedFromStderr = pyqtSignal(str)
     progressUpdated = pyqtSignal(int)
+    numberOfGamesQueried = pyqtSignal(int)
+    gamesBeingCollected = pyqtSignal(int)
     statsReceived = pyqtSignal(dict)
     gamesReceived = pyqtSignal(str)
-    finishedEXecution = pyqtSignal(int, int, str)
+    finishedExecution = pyqtSignal(int, int, str)
     finishedSuccessfully = pyqtSignal()
 
     def __init__(self, parent=None):
@@ -38,19 +40,14 @@ class CQLProcess(QProcess):
         self.collectingMessage = None  # "message" | "error" | None
         self.collecting_games = False
         self.gamedata = ""
+        self.number_of_games = 0  # keep track of total number of games before parsing
 
     def search(self, cqlquery: str, pgnfile: str):
-        with open("temp.cql", "w") as f:
+        with open("temp.cql", "w", encoding="utf-8") as f:
             f.write(cqlquery)
         cqlfile = "temp.cql"
         self.setProgram("cql")
         self.setArguments(["-gui", "--guipgnstdout", "-input", pgnfile, cqlfile])
-        self.start()
-
-    def paginate_games(self, cqlfile: str, start, end):
-        self.setArguments(
-            ["-gui", "--guipgnstdout", "-gamenumber", f"{start}", f"{end}", cqlfile]
-        )
         self.start()
 
     def read_error(self):
@@ -62,7 +59,14 @@ class CQLProcess(QProcess):
         output = self.readAllStandardOutput().data().decode()
         error = self.readAllStandardError().data().decode()
         print(output, error)
-        self.finishedEXecution.emit(exitCode, exitStatus, output)
+        self.finishedExecution.emit(exitCode, exitStatus, output)
+
+    def extract_number_of_games(self, line: str):
+        pattern = QRegularExpression(r"numbergames=(\d+)")
+        match = pattern.match(line)
+        if match.hasMatch():
+            return int(match.captured(1))
+        return 0
 
     def read_data(self):
         while self.canReadLine():
@@ -116,11 +120,14 @@ class CQLProcess(QProcess):
 
             if line.startswith("<CqlGuiPgn"):
                 self.collecting_games = True  # experimental option disabled for now # TODO improve maybe use rust
+                self.number_of_games = self.extract_number_of_games(line)
+                self.numberOfGamesQueried.emit(self.number_of_games)
 
             if line.startswith("</CqlGuiPgn>"):
                 self.collecting_games = False
                 self.gamesReceived.emit(self.gamedata)
                 self.gamedata = ""
+                self.number_of_games = 0
 
             if self.collecting_games and not line.strip().startswith("<CqlGuiPgn"):
                 self.gamedata += line

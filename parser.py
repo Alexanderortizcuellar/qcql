@@ -99,6 +99,8 @@ class PgnTableWidget(QtWidgets.QWidget):
     """
 
     gameSelected = QtCore.pyqtSignal(dict)
+    gameParsed = QtCore.pyqtSignal(int)
+    parserFinished = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -116,7 +118,7 @@ class PgnTableWidget(QtWidgets.QWidget):
         self.info_label = QtWidgets.QLabel(self)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(1, 5, 1, 1)
-        #layout.setSpacing(6)
+        # layout.setSpacing(6)
         layout.addWidget(self.filter_edit)
         layout.addWidget(self.table, 1)
         layout.addWidget(self.info_label)
@@ -139,10 +141,11 @@ class PgnTableWidget(QtWidgets.QWidget):
     def load_pgn_threaded(self, pgn_text: str):
         self.worker = PGNWorker(self, pgn_text)
         self.worker.finished.connect(self.on_worker_finished)
-        #self.worker.gameParsed.connect(print)
+        self.worker.finished.connect(self.parserFinished.emit)
+        self.worker.gameParsed.connect(self.gameParsed.emit)
+        print("starting worker to parse PGN")
         self.worker.start()
 
-    
     def on_worker_finished(self, rows: List[Dict[str, str]]):
         self.model.set_rows(rows)
         self._hide_moves_column()
@@ -217,44 +220,6 @@ class PgnTableWidget(QtWidgets.QWidget):
             board.push(mv)
         return " ".join(sans)
 
-    @staticmethod
-    def _parse_pgn_text_to_rows(pgn_text: str) -> List[Dict[str, str]]:
-        """
-        Convert PGN text into a list of rows (dicts). Each row includes:
-          - Event, Site, Date, Round, White, Black, Result, ECO, Moves
-          - _pgn: the full PGN for the game
-        """
-        rows: List[Dict[str, str]] = []
-        stream = io.StringIO(pgn_text)
-
-        # Keep reading until no more games
-        while True:
-            game = chess_pgn.read_game(stream)
-            if game is None:
-                break
-
-            H = game.headers  # chess.pgn.Headers
-            if len(list(game.mainline_moves())) == 0:
-                continue
-            row = {
-                "Event": H.get("Event", ""),
-                "Site": H.get("Site", ""),
-                "Date": PgnTableWidget._normalize_pgn_date(H.get("Date", "")),
-                "Round": H.get("Round", ""),
-                "White": H.get("White", ""),
-                "Black": H.get("Black", ""),
-                "WhiteElo": H.get("WhiteElo", ""),
-                "BlackElo": H.get("BlackElo", ""),
-                "Result": H.get("Result", ""),
-                "ECO": H.get("ECO", ""),
-                # Keep moves for later use (hidden column)
-                "Moves": PgnTableWidget._game_moves_san(game),
-                # Extras not shown as columns:
-                "_pgn": str(game).strip(),
-            }
-            rows.append(row)
-        return rows
-
 
 class PGNWorker(QtCore.QThread):
     finished = QtCore.pyqtSignal(list)
@@ -268,7 +233,7 @@ class PGNWorker(QtCore.QThread):
         rows = self._parse_pgn_text_to_rows(self.pgn_text)
         self.finished.emit(rows)
 
-    def _parse_pgn_text_to_rows(self,pgn_text: str) -> List[Dict[str, str]]:
+    def _parse_pgn_text_to_rows(self, pgn_text: str) -> List[Dict[str, str]]:
         """
         Convert PGN text into a list of rows (dicts). Each row includes:
           - Event, Site, Date, Round, White, Black, Result, ECO, Moves

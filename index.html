@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en" class="antialiased">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chess.com PGN Downloader</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen p-4 md:p-8 transition-colors duration-200">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- Core API & Utility Functions ---
+    const BASE = "https://api.chess.com/pub";
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+    const ymToInt = (y, m) => y * 100 + m;
+
+    function parseArchiveYM(url) {
+      try {
+        const u = new URL(url);
+        const parts = u.pathname.replace(/^\/+|\/+$/g, "").split("/");
+        if (parts.length >= 6 && parts[parts.length - 3] === "games") {
+          const y = parseInt(parts[parts.length - 2], 10);
+          const m = parseInt(parts[parts.length - 1], 10);
+          if (Number.isFinite(y) && Number.isFinite(m)) return [y, m];
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    // --- Main Application Component ---
+    function App() {
+      // Form State
+      const [username, setUsername] = useState("alexander2magnus");
+      const [startYear, setStartYear] = useState(2021);
+      const [startMonth, setStartMonth] = useState(1);
+      
+      // Process State
+      const [isRunning, setIsRunning] = useState(false);
+      const [status, setStatus] = useState("Idle");
+      const [progress, setProgress] = useState(0);
+      const [stats, setStats] = useState({ month: "—", downloaded: 0, total: 0, bytes: 0 });
+      const [logs, setLogs] = useState([]);
+      
+      // Download State
+      const [downloadInfo, setDownloadInfo] = useState(null);
+
+      // Refs
+      const abortControllerRef = useRef(null);
+      const logContainerRef = useRef(null);
+
+      // Auto-scroll logs
+      useEffect(() => {
+        if (logContainerRef.current) {
+          logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+      }, [logs]);
+
+      const addLog = (msg, type = "info") => {
+        setLogs(prev => [...prev, { id: Date.now() + Math.random(), msg, type }]);
+        console.log(`[${type.toUpperCase()}] ${msg}`);
+      };
+
+      const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      };
+
+      async function fetchWithRetry(url, { signal }, retries = 7) {
+        const headers = {
+          "User-Agent": "pgn-downloader/2.0 (browser; contact: local)",
+          "Accept": "*/*"
+        };
+        let lastErr = null;
+
+        for (let attempt = 0; attempt < retries; attempt++) {
+          const waitBase = 800 * (attempt + 1);
+          try {
+            const res = await fetch(url, { headers, signal, cache: "no-store" });
+            if (res.ok) return res;
+            
+            if (res.status === 429) {
+              const wait = Math.min(15000, waitBase * (attempt + 1));
+              addLog(`429 Rate limited. Retrying in ${wait/1000}s...`, "warn");
+              await sleep(wait);
+              continue;
+            }
+            if (res.status >= 500 && res.status < 600) {
+              const wait = Math.min(12000, waitBase);
+              addLog(`Server error ${res.status}. Retrying in ${wait/1000}s...`, "warn");
+              await sleep(wait);
+              continue;
+            }
+            const text = await res.text().catch(() => "");
+            throw new Error(`HTTP ${res.status} ${res.statusText}`);
+          } catch (err) {
+            lastErr = err;
+            if (signal?.aborted) throw err;
+            const wait = Math.min(12000, waitBase);
+            addLog(`Network error. Retrying in ${wait/1000}s...`, "warn");
+            await sleep(wait);
+          }
+        }
+        throw lastErr || new Error("Failed after retries");
+      }
+
+      const handleStart = async () => {
+        if (!username.trim()) {
+          addLog("Please enter a username.", "err");
+          return;
+        }
+
+        // Reset state
+        setLogs([]);
+        setProgress(0);
+        setDownloadInfo(null);
+        setStats({ month: "—", downloaded: 0, total: 0, bytes: 0 });
+        
+        setIsRunning(true);
+        setStatus("Fetching archives...");
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        addLog(`Target Username: ${username}`, "success");
+
+        const sYear = clamp(parseInt(startYear, 10) || 2021, 2007, 2100);
+        const sMonth = clamp(parseInt(startMonth, 10) || 1, 1, 12);
+        
+        const now = new Date();
+        const endYear = now.getFullYear();
+        const endMonth = now.getMonth() + 1;
+
+        const startYM = ymToInt(sYear, sMonth);
+        const endYM = ymToInt(endYear, endMonth);
+        const archivesUrl = `${BASE}/player/${encodeURIComponent(username.trim())}/games/archives`;
+
+        try {
+          const archivesRes = await fetchWithRetry(archivesUrl, { signal });
+          const archivesJson = await archivesRes.json();
+          const archives = Array.isArray(archivesJson.archives) ? archivesJson.archives : [];
+
+          if (!archives.length) {
+            setStatus("No data");
+            addLog("No archives returned. Account may be private or invalid.", "warn");
+            setIsRunning(false);
+            return;
+          }
+
+          const months = [];
+          for (const a of archives) {
+            const ym = parseArchiveYM(a);
+            if (!ym) continue;
+            const [y, m] = ym;
+            const v = ymToInt(y, m);
+            if (v >= startYM && v <= endYM) months.push([y, m]);
+          }
+
+          months.sort((a, b) => ymToInt(a[0], a[1]) - ymToInt(b[0], b[1]));
+          setStats(prev => ({ ...prev, total: months.length }));
+          
+          if (months.length === 0) {
+             addLog("No games found in the selected date range.", "warn");
+             setStatus("Complete");
+             setIsRunning(false);
+             return;
+          }
+
+          addLog(`Found ${months.length} months to download.`, "success");
+          setStatus("Downloading PGNs...");
+
+          let combined = "";
+          let currentBytes = 0;
+
+          for (let i = 0; i < months.length; i++) {
+            const [y, m] = months[i];
+            const monthStr = `${y}-${String(m).padStart(2, "0")}`;
+            setStats(prev => ({ ...prev, month: monthStr }));
+
+            const pgnUrl = `${BASE}/player/${encodeURIComponent(username.trim())}/games/${y}/${String(m).padStart(2,"0")}/pgn`;
+            addLog(`Fetching games for ${monthStr}...`, "info");
+            
+            const res = await fetchWithRetry(pgnUrl, { signal });
+            const text = (await res.text()).trim();
+
+            if (text) {
+              combined += (combined ? "\n\n" : "") + text;
+              currentBytes += new TextEncoder().encode(text).length;
+              setStats(prev => ({ ...prev, downloaded: i + 1, bytes: currentBytes }));
+            } else {
+              addLog(`No games found for ${monthStr} (skipped)`, "warn");
+              setStats(prev => ({ ...prev, downloaded: i + 1 }));
+            }
+
+            setProgress(Math.round(((i + 1) / months.length) * 100));
+            await sleep(350); // Politeness delay
+          }
+
+          if (!combined) {
+            setStatus("Complete - No Games");
+            addLog("Finished, but no PGN data was collected.", "warn");
+            setIsRunning(false);
+            return;
+          }
+
+          // Generate file
+          const fileName = `${username.trim()}_games_${sYear}-${String(sMonth).padStart(2,"0")}_to_${endYear}-${String(endMonth).padStart(2,"0")}.pgn`;
+          const blob = new Blob([combined + "\n"], { type: "application/x-chess-pgn;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+
+          setDownloadInfo({ url, fileName, size: formatBytes(blob.size) });
+          setStatus("Complete");
+          addLog("✅ Download finished! Your PGN file is ready.", "success");
+
+        } catch (err) {
+          if (signal?.aborted) {
+            setStatus("Aborted");
+            addLog("Process aborted by user.", "warn");
+          } else {
+            setStatus("Error");
+            addLog(`❌ Error: ${err?.message || err}`, "err");
+          }
+        } finally {
+          setIsRunning(false);
+          abortControllerRef.current = null;
+        }
+      };
+
+      const handleAbort = () => {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      };
+
+      // Initial Log
+      useEffect(() => {
+        addLog("Ready. Enter parameters and press 'Start Download'.", "success");
+      }, []);
+
+      return (
+        <div className="max-w-4xl mx-auto flex flex-col gap-6">
+          {/* Header */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <h1 className="text-2xl font-bold tracking-tight mb-6 flex items-center gap-2">
+              <svg className="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              PGN Bulk Downloader
+            </h1>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+              <div className="md:col-span-5">
+                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Chess.com Username</label>
+                <input 
+                  type="text" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  disabled={isRunning}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-shadow"
+                  placeholder="e.g. hikaru"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start Year</label>
+                <input 
+                  type="number" 
+                  value={startYear}
+                  onChange={(e) => setStartYear(e.target.value)}
+                  disabled={isRunning}
+                  min="2007" max="2100"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-shadow"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start Month</label>
+                <input 
+                  type="number" 
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(e.target.value)}
+                  disabled={isRunning}
+                  min="1" max="12"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 transition-shadow"
+                />
+              </div>
+              <div className="md:col-span-3 flex gap-2">
+                <button 
+                  onClick={handleStart} 
+                  disabled={isRunning}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl px-4 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Start
+                </button>
+                <button 
+                  onClick={handleAbort} 
+                  disabled={!isRunning}
+                  className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl px-4 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Abort
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress & Metrics */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex justify-between text-sm font-medium mb-2">
+              <span className="text-slate-500 dark:text-slate-400">Status: <span className="text-slate-900 dark:text-slate-100">{status}</span></span>
+              <span className="text-slate-900 dark:text-slate-100">{progress}%</span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mb-6 overflow-hidden">
+              <div 
+                className="bg-indigo-600 h-3 rounded-full transition-all duration-300 ease-out" 
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-slate-500 dark:text-slate-400 mb-1">Current Month</div>
+                <div className="font-semibold">{stats.month}</div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-slate-500 dark:text-slate-400 mb-1">Months Done</div>
+                <div className="font-semibold">{stats.downloaded} / {stats.total || "—"}</div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-slate-500 dark:text-slate-400 mb-1">Data Size</div>
+                <div className="font-semibold">{formatBytes(stats.bytes)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Download Action Area */}
+          {downloadInfo && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
+              <div>
+                <h3 className="text-emerald-800 dark:text-emerald-400 font-semibold text-lg">Your PGN is ready!</h3>
+                <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1">
+                  {downloadInfo.fileName} <span className="opacity-75">({downloadInfo.size})</span>
+                </p>
+              </div>
+              <a 
+                href={downloadInfo.url} 
+                download={downloadInfo.fileName}
+                className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl px-6 py-3 text-center transition-colors shadow-sm"
+              >
+                Save PGN File
+              </a>
+            </div>
+          )}
+
+          {/* Terminal / Logs */}
+          <div className="bg-[#1e1e2e] rounded-2xl shadow-sm border border-slate-800 overflow-hidden flex flex-col h-72">
+            <div className="bg-[#181825] px-4 py-2 border-b border-slate-800 flex gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <div 
+              ref={logContainerRef}
+              className="p-4 overflow-y-auto font-mono text-xs md:text-sm leading-relaxed space-y-1.5 flex-1 scroll-smooth"
+            >
+              {logs.map((log) => {
+                let colorClass = "text-slate-300";
+                if (log.type === "success") colorClass = "text-emerald-400";
+                if (log.type === "warn") colorClass = "text-amber-400";
+                if (log.type === "err") colorClass = "text-rose-400";
+
+                return (
+                  <div key={log.id} className={`${colorClass} break-all`}>
+                    <span className="opacity-50 mr-2 text-slate-500">
+                      {new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
+                    </span>
+                    {log.msg}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>

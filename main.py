@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import (
     QProgressDialog,
     QFileDialog,
     QMessageBox,
+    QWidget,
+    QLabel,
 )
 from PyQt5.QtCore import Qt, QFile, pyqtSignal
 from PyQt5.QtGui import QIcon
@@ -187,6 +189,7 @@ class ChessCQLApp(QMainWindow):
                 self.results_table.set_info_text(
                     f"{numbermatches} matches of {self.game_count} games"
                 )
+                print(f"{numbermatches} matches of {self.game_count} games")
                 self.status_bar.showMessage(
                     f"{numbermatches} matches of {self.game_count} games"
                 )
@@ -202,9 +205,14 @@ class ChessCQLApp(QMainWindow):
     def on_error_received(self, error: str):
         self.log_panel.insertHtml(f"<span style='color:red'>{error}</span><br>")
 
+    def modify_progress(self, dlg: QProgressDialog):
+        dlg.setMaximum(0)
+        dlg.setMaximum(0)
+        dlg.setLabelText("Processing games...")
+
     def show_progress(self):
         dlg = QProgressDialog(
-            "Processing games...",
+            "Searching games...",
             "Cancel",
             0,
             self.game_count,
@@ -213,8 +221,9 @@ class ChessCQLApp(QMainWindow):
         )
         dlg.setWindowTitle("Processing...")
         self.cql.progressUpdated.connect(dlg.setValue)
+        # self.cql.numberOfGamesQueried.connect(lambda _: self.modify_progress(dlg))
         dlg.canceled.connect(self.cql.terminate)
-        self.cql.finishedEXecution.connect(dlg.close)
+        self.cql.finishedExecution.connect(dlg.close)
 
         dlg.setWindowModality(Qt.ApplicationModal)
         dlg.setValue(0)
@@ -329,9 +338,21 @@ class ChessCQLApp(QMainWindow):
 
     # ----- Central results table -----
     def _create_central_table(self):
+        self.main_container = QWidget()
+        self.main_container_layout = QVBoxLayout()
         self.results_table = PgnTableWidget()
 
-        self.setCentralWidget(self.results_table)
+        self.table_logs = QLabel("Parsing Games...")
+        self.table_logs.setObjectName("TableLogs")
+        self.results_table.parserFinished.connect(
+            lambda: self.table_logs.setVisible(False)
+        )
+        self.table_logs.setAlignment(Qt.AlignCenter)
+        self.table_logs.setVisible(False)
+        self.main_container.setLayout(self.main_container_layout)
+        self.main_container_layout.addWidget(self.results_table)
+        self.main_container_layout.addWidget(self.table_logs)
+        self.setCentralWidget(self.main_container)
 
         # Double-click a row to open the chessboard dialog
         self.results_table.gameSelected.connect(self.show_chessboard_dialog)
@@ -466,8 +487,11 @@ class ChessCQLApp(QMainWindow):
             print(f"Opening {filename}... Please wait...")
             self.act_run.setEnabled(False)
             counter = CounterProcess(self, self.pgnfilename)
+            dlg = QProgressDialog("Counting games...", "Cancel", 0, 0, self)
             counter.countFinished.connect(self.on_count_finished)
+            counter.finished.connect(dlg.close)
             counter.start()
+            dlg.exec_()
 
     def on_count_finished(self, count: int):
         self.status_bar.showMessage(f"games on file {count} games")
@@ -494,6 +518,8 @@ class ChessCQLApp(QMainWindow):
 
     def on_games(self, games: str):
         self.results_table.clear()
+        print("results are ready")
+        self.table_logs.setVisible(True)
         self.results_table.load_pgn_threaded(games)
 
     def closeEvent(self, a0):

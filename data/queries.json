@@ -45,7 +45,7 @@
     },
     {
         "name": "b4tTrap",
-        "query": "cql()\nplayer white \"Alexander2Magnus\"\nresult 1-0\nBc4\nbc5\npath\nP--a4\na--\nP--b4"
+        "query": "cql()\nplayer white \"Alexander2magnus\"\nresult 1-0\nBc4\nbc5\npath\nP--a4\na--\nP--b4"
     },
     {
         "name": "knightForkQK",
@@ -54,5 +54,17 @@
     {
         "name": "karoQxb3",
         "query": "cql()\nfen \"rnbqkbnr/pp2pppp/8/3p4/3P4/3B4/PPP2PPP/RNBQK1NR\"\nfind all {\nq[x]b3 and a[x]b3\n}"
+    },
+    {
+        "name": "ItalianBc5-d6-d4",
+        "query": "cql()\nplayer white \"Alexander2magnus\"\nfen \"r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3\"\npath\nb--c5\nP--c3\np--d6\nP--d4"
+    },
+    {
+        "name": "london",
+        "query": "cql()\nplayer black \"Alexander2magnus\"\nfen \"rnbqkb1r/pp3ppp/4pn2/2pp4/3P1B2/4PN2/PPP2PPP/RN1QKB1R w KQkq - 0 5\""
+    },
+    {
+        "name": "mateDespiteMaterialDeficit",
+        "query": "cql()\nflipcolor {\n    player white \"Alexander2magnus\"\n    btm\n    mate\n    power a - power A >= 8\n    comment \"Checkmate despite material deficit\"\n}"
     }
 ]

@@ -7,12 +7,23 @@ QWidget {
     font-size: 13px;
 }
 
+
 /* Emphasis label example */
 QLabel#Header {
     font-size: 18px;
     font-weight: 700;
     color: #0B5CAD;
 }
+
+QLabel#TableLogs {
+    background-color: #5d92ba;
+    color: #1F2937;
+    font-family: Segoe UI, "Helvetica Neue", Arial, sans-serif;
+    font-size: 33px;
+    min-height: 180px;
+}
+
+
 
 /* ===== Text Editors ===== */
 QPlainTextEdit {
@@ -285,6 +296,14 @@ QLabel#Header {
     font-size: 18px;
     font-weight: 700;
     color: #93C5FD;
+}
+
+QLabel#TableLogs {
+    background-color: #5d92ba;
+    color: #1F2937;
+    font-family: Segoe UI, "Helvetica Neue", Arial, sans-serif;
+    font-size: 33px;
+    min-height: 180px;
 }
 
 /* ===== Text Editors ===== */

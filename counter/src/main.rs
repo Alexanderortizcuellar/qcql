@@ -35,6 +35,9 @@ impl Visitor for GameCounter {
 
     fn end_game(&mut self, _movetext: Self::Movetext) -> Self::Output {
         self.games += 1;
+        if self.games % 100 == 0 {
+            println!("PROGRESS: {}", self.games);
+        }
     }
 }
 
