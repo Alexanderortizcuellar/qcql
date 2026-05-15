@@ -23,11 +23,11 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QFile, pyqtSignal
 from PyQt5.QtGui import QIcon
 import qtawesome as qta
-from editor import SqlEditorWidget
-from styles import DARK_QSS, LIGHT_QSS
-from parser import PgnTableWidget
-from browser import PGNBrowser
-from process import CQLProcess, CounterProcess
+from ui.editor import SqlEditorWidget
+from ui.styles import DARK_QSS, LIGHT_QSS
+from ui.parser import PgnTableWidget
+from ui.browser import PGNBrowser
+from core.process import CQLProcess, CounterProcess
 
 
 def fa_icon(*names, color="#1F2937"):

@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtWidgets import (QAction, QApplication, QDialog, QDialogButtonBox,
                              QMenu, QTextBrowser, QTextEdit, QVBoxLayout)
 
-from movemanager import MoveManager
+from core.movemanager import MoveManager
 
 
 class CommentDialog(QDialog):

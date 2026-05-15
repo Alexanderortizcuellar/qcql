@@ -13,15 +13,15 @@ import re
 import sys
 from io import StringIO
 import chess.pgn
-from chessboard import ChessBoard
-from movemanager import MoveManager
+from ui.chessboard import ChessBoard
+from core.movemanager import MoveManager
 import qtawesome as qta
 
-from pgn_browser import PGNBrowser as PGN_Browser
-from viewer import PGNHeaderWidget
-from analysis_widget import AnalysisWidget
-from bar import EvalBar
-from engine import ChessEngine
+from ui.pgn_browser import PGNBrowser as PGN_Browser
+from ui.viewer import PGNHeaderWidget
+from ui.analysis_widget import AnalysisWidget
+from ui.bar import EvalBar
+from core.engine import ChessEngine
 
 text = """[Event "?"]
 [Site "?"]

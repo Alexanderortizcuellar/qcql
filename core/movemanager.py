@@ -4,7 +4,7 @@ import chess
 import chess.pgn
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from pgn_to_html import pgn_to_html
+from core.pgn_to_html import pgn_to_html
 
 
 class MoveManager(QObject):
